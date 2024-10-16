@@ -7,7 +7,7 @@
     "**/.client/**/*.ts",
     "**/.client/**/*.tsx",
     "app/components/products/ProductList.jsx"
-  ],
+, "app/routes/admin.tsx", "app/routes/products.tsx"  ],
   "compilerOptions": {
     "lib": [
       "DOM",
