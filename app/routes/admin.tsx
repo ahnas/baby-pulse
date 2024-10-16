@@ -3,6 +3,7 @@ import { Form, useActionData, useLoaderData } from "@remix-run/react";
 import { useState, useEffect } from "react";
 import prisma from "~/db/prisma";
 import type { MetaFunction } from "@remix-run/node";
+import ImageModal from "~/components/ImageModal";
 
 export const meta: MetaFunction = () => {
     return [
@@ -36,8 +37,6 @@ export const action = async ({ request }: { request: Request }) => {
                 price,
                 images: {
                     create: [
-                        { url: "https://avatars.githubusercontent.com/u/55777444?v=4" },
-                        // { url: "https://example.com/image2.jpg" },
                     ],
                 },
             },
@@ -90,6 +89,18 @@ export default function AdminPage() {
     const [deletedProducts, setDeletedProducts] = useState<number[]>([]);
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [selectAll, setSelectAll] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedImages, setSelectedImages] = useState([]);
+
+    const handleOpenModal = (images: any) => {
+        setSelectedImages(images);
+        setIsModalOpen(true);
+    };
+
+    const closeModal = () => {
+        setIsModalOpen(false);
+        setSelectedImages([]);
+    };
 
     useEffect(() => {
         if (actionData?.success) {
@@ -249,16 +260,24 @@ export default function AdminPage() {
                                         <td className="border border-gray-300 p-2">{product.title}</td>
                                         <td className="border border-gray-300 p-2">{product.price}</td>
                                         <td className="border border-gray-300 p-2">{product?.description}</td>
-                                        <td className="border border-gray-300 p-2">
-                                            {product?.images?.map((image) => (
-                                                <img
-                                                    key={image.id}
-                                                    src={image.url}
-                                                    alt={image.url}
-                                                    className="w-10 h-10 object-cover"
-                                                />
-                                            ))}
+                                        <td className="border border-gray-300 p-2 flex flex-row flex-nowrap justify-between">
+                                            <img src={product?.images[0]?.url} alt="" className="w-10 h-10 object-cover" />
+                                            {product.images.length > 1 && (
+                                                <button
+                                                    className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600"
+                                                    onClick={() => handleOpenModal(product.images)} // Open modal on click
+                                                >
+                                                    More Photos
+                                                </button>
+                                            )}
                                         </td>
+
+
+                                        <ImageModal
+                                            isOpen={isModalOpen}
+                                            onClose={() => setIsModalOpen(false)}
+                                            images={selectedImages}
+                                        />
 
 
                                         <td className="border border-gray-300 p-2">

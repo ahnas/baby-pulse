@@ -43,14 +43,17 @@ export default function ProductsPage() {
 
 
 
-            {product?.images?.map((image) => (
+            {/* {product?.images?.map((image) => (
               <img
                 key={image.id}
                 src={image.url}
                 alt={image.url}
                 className="w-full transition scale-[95%] hover:scale-100 delay-300"
               />
-            ))}
+            ))} */}
+
+              <img src={product.images[0].url} alt="" />
+
 
             <h2 className="pt-4">{product.title}</h2>
             <h2 className="pt-4">{product.price}</h2>

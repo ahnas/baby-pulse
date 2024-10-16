@@ -1,4 +1,4 @@
-// app/routes/index.tsx
+
 import { MetaFunction } from "@remix-run/node";
 import Navbar from "~/components/Navbar";
 
