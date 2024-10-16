@@ -22,43 +22,70 @@ export const action = async ({ request }: { request: Request }) => {
     const content = formData.get("content");
     const done = formData.get("done") === "on";
 
+    let addedProductId: number | undefined;
     if (title && content) {
-        await prisma.product.create({
+        const newProduct = await prisma.product.create({
             data: { title, content, done } as any,
         });
+        addedProductId = newProduct.id;
     }
 
-    const deleteIds = formData.getAll("deleteId");
+    const deleteIds = formData.getAll("deleteId").map(Number);
     if (deleteIds.length > 0) {
         await Promise.all(deleteIds.map(id =>
-            prisma.product.delete({ where: { id: Number(id) } })
+            prisma.product.delete({ where: { id } })
         ));
     }
 
-    return json({ success: true, deletedIds: deleteIds });
+    const singleDeleteId = formData.get("singleDeleteId");
+    if (singleDeleteId) {
+        await prisma.product.delete({ where: { id: Number(singleDeleteId) } });
+    }
+
+    return json({
+        success: true,
+        deletedIds: deleteIds,
+        singleDeletedId: singleDeleteId,
+        addedProductId
+    });
 };
 
 export default function AdminPage() {
     interface ActionData {
         success?: boolean;
-        deletedIds?: string[];
+        deletedIds?: number[];
+        singleDeletedId?: number;
+        addedProductId?: number;
     }
+
     const actionData = useActionData<ActionData>();
     const products = useLoaderData<{ id: number; title: string; content: string; done: boolean }[]>();
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [done, setDone] = useState(false);
-    const [successMessage, setSuccessMessage] = useState("");
+    const [addMessage, setAddMessage] = useState("");
+    const [deleteMessage, setDeleteMessage] = useState("");
     const [deletedProducts, setDeletedProducts] = useState<number[]>([]);
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [selectAll, setSelectAll] = useState(false);
 
     useEffect(() => {
         if (actionData?.success) {
-            // Only set success message when adding a product
-            if (actionData.deletedIds?.length === 0) {
-                setSuccessMessage("Product added successfully!");
+            // Handle product addition message
+            if (actionData.addedProductId) {
+                setAddMessage(`Product ${actionData.addedProductId} added successfully!`);
             }
-            setDeletedProducts(actionData.deletedIds?.map(Number) || []);
+
+            // Handle deletion messages
+            if (actionData.singleDeletedId) {
+                setDeleteMessage(`Product ${actionData.singleDeletedId} deleted successfully!`);
+                setDeletedProducts((prev) => [...prev, actionData.singleDeletedId ?? 0]);
+            }
+
+            if (actionData.deletedIds && actionData.deletedIds.length > 0) {
+                setDeleteMessage(`Deleted products: ${actionData.deletedIds.join(", ")}`);
+                setDeletedProducts((prev) => [...prev, ...(actionData.deletedIds ?? [])]);
+            }
 
             // Reset form fields
             setTitle("");
@@ -66,7 +93,8 @@ export default function AdminPage() {
             setDone(false);
 
             const timer = setTimeout(() => {
-                setSuccessMessage("");
+                setAddMessage("");
+                setDeleteMessage("");
             }, 3000);
 
             return () => clearTimeout(timer);
@@ -74,16 +102,33 @@ export default function AdminPage() {
     }, [actionData]);
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectAll(e.target.checked);
+        const checked = e.target.checked;
+        setSelectAll(checked);
+        setSelectedIds(checked ? products.map(product => product.id) : []);
+    };
+
+    const handleIndividualSelect = (e: React.ChangeEvent<HTMLInputElement>, productId: number) => {
+        if (e.target.checked) {
+            setSelectedIds(prev => [...prev, productId]);
+        } else {
+            setSelectedIds(prev => prev.filter(id => id !== productId));
+        }
+
+        // Update "Select All" state
+        if (selectedIds.length === products.length - 1) {
+            setSelectAll(true);
+        } else {
+            setSelectAll(false);
+        }
     };
 
     return (
         <div className="flex max-w-6xl mx-auto mt-10 p-5 border rounded shadow">
             <div className="w-1/2 pr-4">
                 <h1 className="text-2xl font-bold mb-4">Create Product</h1>
-                {successMessage && (
+                {addMessage && (
                     <div className="mb-4 p-3 text-green-800 bg-green-200 rounded">
-                        {successMessage}
+                        {addMessage}
                     </div>
                 )}
                 <Form method="post" className="space-y-4">
@@ -139,9 +184,9 @@ export default function AdminPage() {
             <div className="w-1/2 pl-4">
                 <h2 className="text-xl font-bold mt-6">Product List</h2>
                 <div className="mt-4 h-64 overflow-y-auto">
-                    {deletedProducts.length > 0 && (
+                    {deleteMessage && (
                         <div className="mb-4 p-3 text-white bg-red-600 rounded">
-                            Deleted Products: {deletedProducts.join(", ")}
+                            {deleteMessage}
                         </div>
                     )}
                     <Form method="post" className="mt-4">
@@ -170,10 +215,8 @@ export default function AdminPage() {
                                                 type="checkbox"
                                                 name="deleteId"
                                                 value={product.id}
-                                                checked={selectAll}
-                                                onChange={(e) => {
-                                                    // Allow individual selection logic if needed
-                                                }}
+                                                checked={selectedIds.includes(product.id)}
+                                                onChange={(e) => handleIndividualSelect(e, product.id)}
                                                 className="cursor-pointer"
                                             />
                                         </td>
@@ -185,6 +228,8 @@ export default function AdminPage() {
                                         <td className="border border-gray-300 p-2">
                                             <button
                                                 type="submit"
+                                                name="singleDeleteId"
+                                                value={product.id}
                                                 className="text-red-500 hover:text-red-700"
                                             >
                                                 Delete
