@@ -2,6 +2,7 @@ import { json, LoaderFunction } from "@remix-run/node";
 import { Link, useLoaderData } from "@remix-run/react";
 import prisma from "~/db/prisma";
 import type { MetaFunction } from "@remix-run/node";
+import Navbar from "~/components/Navbar";
 
 export const meta: MetaFunction = () => {
   return [
@@ -11,31 +12,57 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader: LoaderFunction = async () => {
-  const products = await prisma.product.findMany();
+  const products = await prisma.product.findMany({
+    include: {
+      images: true,
+    },
+  } as any);
   return json(products);
 };
 
+
 export default function ProductsPage() {
-  const products = useLoaderData<{ id: number; title: string; content: string; done: boolean }[]>();
+  const products = useLoaderData<{
+    id: number;
+    title: string;
+    description: string;
+    price: number;
+    images: { id: number; url: string }[];
+  }[]>();
 
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-5">
-      <h1 className="text-2xl font-bold mb-4">Product List</h1>
-      <Link to="/admin" className="text-blue-500 mb-4 inline-block">
-        Add New Product
-      </Link>
-      <ul className="space-y-4">
+    <><Navbar /><div className="p-5 bg-gray-100 text-center">
+      <h1 className="text-2xl font-bold mb-6">Product List</h1>
+
+      <div className="flex flex-wrap justify-center">
         {products.map((product) => (
-          <li key={product.id} className="p-4 border rounded shadow">
-            <h2 className="text-lg font-bold">{product.title}</h2>
-            <p>{product.content}</p>
-            <p className="text-sm text-gray-600">
-              {product.done ? "Status: Done" : "Status: Not Done"}
+          console.log(product),
+          <div key={product.id} className="bg-white w-64 m-5 py-5 transition-shadow hover:shadow-lg border">
+
+
+
+
+            {product?.images?.map((image) => (
+              <img
+                key={image.id}
+                src={image.url}
+                alt={image.url}
+                className="w-full transition scale-[95%] hover:scale-100 delay-300"
+              />
+            ))}
+
+            <h2 className="pt-4">{product.title}</h2>
+            <h2 className="pt-4">{product.price}</h2>
+            <p className="mt-3">
+              <button className="bg-blue-600 text-white px-4 py-2 rounded-md transition-all hover:shadow-md scale-[95%] hover:scale-100">
+                Add to Cart
+              </button>
             </p>
-          </li>
+          </div>
         ))}
-      </ul>
-    </div>
+      </div>
+    </div></>
+
   );
 }

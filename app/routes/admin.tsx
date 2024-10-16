@@ -12,41 +12,57 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader: LoaderFunction = async () => {
-    const products = await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+        include: {
+            images: true,
+        },
+    } as any);
     return json(products);
 };
 
+
 export const action = async ({ request }: { request: Request }) => {
-    const formData = new URLSearchParams(await request.text());
+    const formData = await request.formData();
     const title = formData.get("title");
-    const content = formData.get("content");
-    const done = formData.get("done") === "on";
+    const price = Number(formData.get("price")); // Convert price to a number
+    const description = formData.get("description");
 
     let addedProductId: number | undefined;
-    if (title && content) {
+    if (title && description) {
         const newProduct = await prisma.product.create({
-            data: { title, content, done } as any,
-        });
+            data: {
+                title,
+                description,
+                price,
+                images: {
+                    create: [
+                        { url: "https://avatars.githubusercontent.com/u/55777444?v=4" },
+                        // { url: "https://example.com/image2.jpg" },
+                    ],
+                },
+            },
+        } as any);
         addedProductId = newProduct.id;
     }
 
     const deleteIds = formData.getAll("deleteId").map(Number);
     if (deleteIds.length > 0) {
-        await Promise.all(deleteIds.map(id =>
-            prisma.product.delete({ where: { id } })
-        ));
+        await Promise.all(deleteIds.map(async (id) => {
+            await (prisma as any).image.deleteMany({ where: { productId: id } });
+            await prisma.product.delete({ where: { id } });
+        }));
     }
 
     const singleDeleteId = formData.get("singleDeleteId");
     if (singleDeleteId) {
+        await (prisma as any).image.deleteMany({ where: { productId: Number(singleDeleteId) } });
         await prisma.product.delete({ where: { id: Number(singleDeleteId) } });
     }
-
     return json({
         success: true,
         deletedIds: deleteIds,
         singleDeletedId: singleDeleteId,
-        addedProductId
+        addedProductId,
     });
 };
 
@@ -59,10 +75,16 @@ export default function AdminPage() {
     }
 
     const actionData = useActionData<ActionData>();
-    const products = useLoaderData<{ id: number; title: string; content: string; done: boolean }[]>();
+    const products = useLoaderData<{
+        id: number;
+        title: string;
+        description: string;
+        price: number;
+        images: { id: number; url: string }[];
+    }[]>();
     const [title, setTitle] = useState("");
-    const [content, setContent] = useState("");
-    const [done, setDone] = useState(false);
+    const [price, setPrice] = useState(0);
+    const [description, setDescription] = useState("");
     const [addMessage, setAddMessage] = useState("");
     const [deleteMessage, setDeleteMessage] = useState("");
     const [deletedProducts, setDeletedProducts] = useState<number[]>([]);
@@ -71,12 +93,10 @@ export default function AdminPage() {
 
     useEffect(() => {
         if (actionData?.success) {
-            // Handle product addition message
             if (actionData.addedProductId) {
                 setAddMessage(`Product ${actionData.addedProductId} added successfully!`);
             }
 
-            // Handle deletion messages
             if (actionData.singleDeletedId) {
                 setDeleteMessage(`Product ${actionData.singleDeletedId} deleted successfully!`);
                 setDeletedProducts((prev) => [...prev, actionData.singleDeletedId ?? 0]);
@@ -89,8 +109,8 @@ export default function AdminPage() {
 
             // Reset form fields
             setTitle("");
-            setContent("");
-            setDone(false);
+            setPrice(0);
+            setDescription("");
 
             const timer = setTimeout(() => {
                 setAddMessage("");
@@ -122,16 +142,18 @@ export default function AdminPage() {
         }
     };
 
+    console.log(products);
+
     return (
         <div className="flex max-w-6xl mx-auto mt-10 p-5 border rounded shadow">
-            <div className="w-1/2 pr-4">
+            <div className="w-1/3 pr-4">
                 <h1 className="text-2xl font-bold mb-4">Create Product</h1>
                 {addMessage && (
                     <div className="mb-4 p-3 text-green-800 bg-green-200 rounded">
                         {addMessage}
                     </div>
                 )}
-                <Form method="post" className="space-y-4">
+                <Form method="post" className="space-y-4" encType="multipart/form-data"> {/* Add encType for file uploads */}
                     <div>
                         <label htmlFor="title" className="block text-sm font-medium">
                             Title:
@@ -147,30 +169,33 @@ export default function AdminPage() {
                         />
                     </div>
                     <div>
-                        <label htmlFor="content" className="block text-sm font-medium">
-                            Content:
+                        <label htmlFor="price" className="block text-sm font-medium">
+                            Price:
+                        </label>
+                        <input
+                            type="text"
+                            id="price"
+                            name="price"
+                            value={price}
+                            onChange={(e) => setPrice(+e.target.value)}
+                            required
+                            className="mt-1 block w-full p-2 border rounded"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="description" className="block text-sm font-medium">
+                            Description:
                         </label>
                         <textarea
-                            id="content"
-                            name="content"
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
+                            id="description"
+                            name="description"
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                             className="mt-1 block w-full p-2 border rounded"
                         ></textarea>
                     </div>
-                    <div className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id="done"
-                            name="done"
-                            checked={done}
-                            onChange={(e) => setDone(e.target.checked)}
-                            className="mr-2"
-                        />
-                        <label htmlFor="done" className="text-sm font-medium">
-                            Done
-                        </label>
-                    </div>
+
+
                     <button
                         type="submit"
                         className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition"
@@ -181,7 +206,7 @@ export default function AdminPage() {
             </div>
 
             {/* Right Side: Product List as a Table */}
-            <div className="w-1/2 pl-4">
+            <div className="w-2/3 pl-4">
                 <h2 className="text-xl font-bold mt-6">Product List</h2>
                 <div className="mt-4 h-64 overflow-y-auto">
                     {deleteMessage && (
@@ -202,8 +227,9 @@ export default function AdminPage() {
                                         />
                                     </th>
                                     <th className="border border-gray-300 p-2">Title</th>
-                                    <th className="border border-gray-300 p-2">Content</th>
-                                    <th className="border border-gray-300 p-2">Status</th>
+                                    <th className="border border-gray-300 p-2">Price</th>
+                                    <th className="border border-gray-300 p-2">Description</th>
+                                    <th className="border border-gray-300 p-2">Images</th>
                                     <th className="border border-gray-300 p-2">Actions</th>
                                 </tr>
                             </thead>
@@ -221,10 +247,20 @@ export default function AdminPage() {
                                             />
                                         </td>
                                         <td className="border border-gray-300 p-2">{product.title}</td>
-                                        <td className="border border-gray-300 p-2">{product.content}</td>
+                                        <td className="border border-gray-300 p-2">{product.price}</td>
+                                        <td className="border border-gray-300 p-2">{product?.description}</td>
                                         <td className="border border-gray-300 p-2">
-                                            {product.done ? "Done" : "Not Done"}
+                                            {product?.images?.map((image) => (
+                                                <img
+                                                    key={image.id}
+                                                    src={image.url}
+                                                    alt={image.url}
+                                                    className="w-10 h-10 object-cover"
+                                                />
+                                            ))}
                                         </td>
+
+
                                         <td className="border border-gray-300 p-2">
                                             <button
                                                 type="submit"
