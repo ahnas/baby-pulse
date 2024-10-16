@@ -7,6 +7,8 @@ import ImageModal from "~/components/ImageModal";
 import type { MetaFunction } from "@remix-run/node";
 import CreateProduct from "./admin/CreateProduct";
 import ProductList from "./admin/ProductList";
+import { put } from "@vercel/blob";
+
 
 export const meta: MetaFunction = () => ([
     {
@@ -30,6 +32,17 @@ export const action = async ({ request }: { request: Request }) => {
     const price = Number(formData.get("price"));
     const description = formData.get("description");
 
+
+    const images = Array.from(formData.getAll("images")) as File[];
+    const imageUrls = [];
+    for (const image of images) {
+        if (image instanceof File) {
+            const blobPath = `products/${image.name}`;
+            const response = await put(blobPath, image, { access: 'public' });
+            imageUrls.push({ url: response.url });
+        }
+    }
+
     let addedProductId: number | undefined;
     if (title && description) {
         const newProduct = await prisma.product.create({
@@ -38,10 +51,7 @@ export const action = async ({ request }: { request: Request }) => {
                 description,
                 price,
                 images: {
-                    create: [
-                        { url: "https://avatars.githubusercontent.com/u/55777444?v=4" },
-                        { url: "https://avatars.githubusercontent.com/u/55777444?v=4" },
-                    ],
+                    create: imageUrls,
                 },
             },
         } as any);
@@ -95,6 +105,7 @@ export default function AdminPage() {
     const [selectAll, setSelectAll] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]);
+    const [images, setImages] = useState<File[]>([]);
 
     const handleOpenModal = (images: any) => {
         setSelectedImages(images);
@@ -121,6 +132,7 @@ export default function AdminPage() {
             setTitle("");
             setPrice(0);
             setDescription("");
+            setImages([]);
 
             const timer = setTimeout(() => {
                 setAddMessage("");
@@ -147,6 +159,7 @@ export default function AdminPage() {
                 description={description}
                 setDescription={setDescription}
                 addMessage={addMessage}
+                setImages={setImages}
             />
             <ProductList
                 products={products}

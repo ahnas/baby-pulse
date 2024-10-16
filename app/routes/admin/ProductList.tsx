@@ -117,6 +117,7 @@ const ProductList: React.FC<ProductListProps> = ({
             <ImageModal
                 isOpen={isModalOpen}
                 onClose={closeModal}
+                
                 images={selectedImages}
             />
         </div>

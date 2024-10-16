@@ -16,6 +16,7 @@
     "@remix-run/node": "^2.13.1",
     "@remix-run/react": "^2.13.1",
     "@remix-run/serve": "^2.13.1",
+    "@vercel/blob": "^0.25.1",
     "@vercel/postgres": "^0.10.0",
     "isbot": "^4.1.0",
     "ra-data-json-server": "^5.2.3",
