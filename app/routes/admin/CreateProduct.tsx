@@ -1,6 +1,6 @@
 // CreateProduct.tsx
 import { Form } from "@remix-run/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 interface CreateProductProps {
     title: string;
@@ -10,7 +10,9 @@ interface CreateProductProps {
     description: string;
     setDescription: (description: string) => void;
     addMessage: string;
-    setImages: (images: File[]) => void; // New prop to handle image uploads
+    setImages: (images: File[]) => void; 
+    clearInput: () => void; // Add clearInput prop
+    fileInputRef: React.RefObject<HTMLInputElement>;
 }
 
 const CreateProduct: React.FC<CreateProductProps> = ({
@@ -22,11 +24,16 @@ const CreateProduct: React.FC<CreateProductProps> = ({
     setDescription,
     addMessage,
     setImages,
+    clearInput, // Use the clearInput prop
+    fileInputRef
 }) => {
+
+  
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (files) {
-            setImages(Array.from(files)); 
+            setImages(Array.from(files));
         }
     };
 
@@ -82,6 +89,8 @@ const CreateProduct: React.FC<CreateProductProps> = ({
                         onChange={handleFileChange}
                         multiple
                         className="mt-1 block w-full p-2 border rounded"
+                        ref={fileInputRef} // Attach the ref
+
                     />
                 </div>
                 <button

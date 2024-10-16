@@ -1,7 +1,7 @@
 // admin.tsx
 import { json, LoaderFunction } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import prisma from "~/db/prisma";
 import ImageModal from "~/components/ImageModal";
 import type { MetaFunction } from "@remix-run/node";
@@ -55,6 +55,7 @@ export const action = async ({ request }: { request: Request }) => {
                 },
             },
         } as any);
+
         addedProductId = newProduct.id;
     }
 
@@ -106,6 +107,19 @@ export default function AdminPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]);
     const [images, setImages] = useState<File[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null); 
+
+    const clearInput = () => {
+        setTitle("");
+        setPrice(0);
+        setDescription("");
+        setImages([]);
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; 
+        }
+    };
+
 
     const handleOpenModal = (images: any) => {
         setSelectedImages(images);
@@ -121,6 +135,8 @@ export default function AdminPage() {
         if (actionData?.success) {
             if (actionData.addedProductId) {
                 setAddMessage(`Product ${actionData.addedProductId} added successfully!`);
+                clearInput(); 
+
             }
             if (actionData.singleDeletedId) {
                 setDeleteMessage(`Product ${actionData.singleDeletedId} deleted successfully!`);
@@ -160,6 +176,8 @@ export default function AdminPage() {
                 setDescription={setDescription}
                 addMessage={addMessage}
                 setImages={setImages}
+                clearInput={clearInput} 
+                fileInputRef={fileInputRef}
             />
             <ProductList
                 products={products}
