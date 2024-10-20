@@ -24,7 +24,7 @@ const CreateProduct: React.FC<CreateProductProps> = ({
     setDescription,
     addMessage,
     setImages,
-    clearInput, // Use the clearInput prop
+    clearInput, 
     fileInputRef
 }) => {
 
@@ -89,7 +89,7 @@ const CreateProduct: React.FC<CreateProductProps> = ({
                         onChange={handleFileChange}
                         multiple
                         className="mt-1 block w-full p-2 border rounded"
-                        ref={fileInputRef} // Attach the ref
+                        ref={fileInputRef} 
 
                     />
                 </div>

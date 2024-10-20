@@ -1,5 +1,5 @@
 // admin.tsx
-import { json, LoaderFunction } from "@remix-run/node";
+import { json, LoaderFunction, redirect } from "@remix-run/node";
 import { useActionData, useLoaderData } from "@remix-run/react";
 import { useState, useEffect, useRef } from "react";
 import prisma from "~/db/prisma";
@@ -8,6 +8,7 @@ import type { MetaFunction } from "@remix-run/node";
 import CreateProduct from "./admin/CreateProduct";
 import ProductList from "./admin/ProductList";
 import { put } from "@vercel/blob";
+import { commitSession, getSession } from "./login";
 
 
 export const meta: MetaFunction = () => ([
@@ -17,12 +18,19 @@ export const meta: MetaFunction = () => ([
     },
 ]);
 
-export const loader: LoaderFunction = async () => {
+export const loader: LoaderFunction = async ({ request }) => {
+    const session = await getSession(request.headers.get('Cookie'));
+
+    if (!session.has('isAdmin')) {
+        return redirect('/login');
+    }
+
     const products = await prisma.product.findMany({
         include: {
             images: true,
         },
-    } as any);
+    });
+
     return json(products);
 };
 
@@ -31,6 +39,8 @@ export const action = async ({ request }: { request: Request }) => {
     const title = formData.get("title");
     const price = Number(formData.get("price"));
     const description = formData.get("description");
+
+
 
 
     const images = Array.from(formData.getAll("images")) as File[];
@@ -73,6 +83,7 @@ export const action = async ({ request }: { request: Request }) => {
         await prisma.product.delete({ where: { id: Number(singleDeleteId) } });
     }
 
+
     return json({
         success: true,
         deletedIds: deleteIds,
@@ -107,7 +118,7 @@ export default function AdminPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]);
     const [images, setImages] = useState<File[]>([]);
-    const fileInputRef = useRef<HTMLInputElement>(null); 
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const clearInput = () => {
         setTitle("");
@@ -116,7 +127,7 @@ export default function AdminPage() {
         setImages([]);
 
         if (fileInputRef.current) {
-            fileInputRef.current.value = ""; 
+            fileInputRef.current.value = "";
         }
     };
 
@@ -135,7 +146,7 @@ export default function AdminPage() {
         if (actionData?.success) {
             if (actionData.addedProductId) {
                 setAddMessage(`Product ${actionData.addedProductId} added successfully!`);
-                clearInput(); 
+                clearInput();
 
             }
             if (actionData.singleDeletedId) {
@@ -167,6 +178,7 @@ export default function AdminPage() {
 
     return (
         <div className="flex max-w-6xl mx-auto mt-10 p-5 border rounded shadow">
+
             <CreateProduct
                 title={title}
                 setTitle={setTitle}
@@ -176,7 +188,7 @@ export default function AdminPage() {
                 setDescription={setDescription}
                 addMessage={addMessage}
                 setImages={setImages}
-                clearInput={clearInput} 
+                clearInput={clearInput}
                 fileInputRef={fileInputRef}
             />
             <ProductList

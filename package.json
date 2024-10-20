@@ -18,7 +18,12 @@
     "@remix-run/serve": "^2.13.1",
     "@vercel/blob": "^0.25.1",
     "@vercel/postgres": "^0.10.0",
+    "aws-sdk": "^2.1691.0",
+    "bcrypt": "^5.1.1",
+    "cookie-session": "^2.1.0",
     "isbot": "^4.1.0",
+    "mock-aws-s3": "^4.0.2",
+    "nock": "^13.5.5",
     "ra-data-json-server": "^5.2.3",
     "react": "^18.2.0",
     "react-admin": "^5.2.3",
@@ -26,6 +31,7 @@
   },
   "devDependencies": {
     "@remix-run/dev": "^2.13.1",
+    "@types/bcrypt": "^5.0.2",
     "@types/react": "^18.2.20",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^6.7.4",
@@ -42,6 +48,7 @@
     "tailwindcss": "^3.4.4",
     "typescript": "^5.1.6",
     "vite": "^5.1.0",
+    "vite-plugin-html": "^3.2.2",
     "vite-tsconfig-paths": "^4.2.1"
   },
   "engines": {
