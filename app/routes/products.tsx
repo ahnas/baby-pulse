@@ -37,7 +37,6 @@ export default function ProductsPage() {
 
       <div className="flex flex-wrap justify-center">
         {products.map((product) => (
-          console.log(product),
           <div key={product.id} className="bg-white w-64 m-5 py-5 transition-shadow hover:shadow-lg border">
 
 

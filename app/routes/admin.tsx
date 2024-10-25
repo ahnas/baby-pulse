@@ -203,6 +203,13 @@ export default function AdminPage() {
                 isModalOpen={isModalOpen}
                 selectedImages={selectedImages}
             />
+            <div>
+                <form method="post" action="/signout">
+                    <button type="submit" className="bg-red-600 text-white font-semibold py-2 px-4 rounded hover:bg-red-700">
+                        Logout
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }
