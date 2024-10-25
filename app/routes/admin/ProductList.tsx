@@ -15,11 +15,14 @@ export interface ProductListProps {
     setSelectedIds: (ids: any) => void;
     handleSelectAll: (e: React.ChangeEvent<HTMLInputElement>) => void;
     selectAll: boolean;
-    handleOpenModal: (images: any) => void;
+    handleOpenModal: (images: any, title: string) => void;
     closeModal: () => void;
     isModalOpen: boolean;
     selectedImages: any[];
+    onUpload: (images: File[]) => Promise<void>;
+    currentTitle: string;
 }
+
 
 const ProductList: React.FC<ProductListProps> = ({
     products,
@@ -32,6 +35,8 @@ const ProductList: React.FC<ProductListProps> = ({
     closeModal,
     isModalOpen,
     selectedImages,
+    onUpload,
+    currentTitle,
 }) => (
     <div className="w-2/3 pl-4">
         <h2 className="text-xl font-bold mt-6">Product List</h2>
@@ -87,11 +92,22 @@ const ProductList: React.FC<ProductListProps> = ({
                                     {product.images.length > 1 && (
                                         <button
                                             className="bg-blue-500 text-white font-bold py-2 px-4 rounded hover:bg-blue-600"
-                                            onClick={() => handleOpenModal(product.images)}
+                                            onClick={() => handleOpenModal(product.images, product.title)}
                                         >
                                             More Photos
                                         </button>
                                     )}
+
+                                    <button onClick={() => handleOpenModal(product.images, product.title)} className="bg-blue-600 text-white px-1 py-1 rounded-md transition-all hover:shadow-md">
+                                        Add
+                                    </button>
+                                    <ImageModal
+                                        isOpen={isModalOpen}
+                                        onClose={closeModal}
+                                        onUpload={onUpload}
+                                        images={selectedImages}
+                                        currentTitle={currentTitle}
+                                    />
                                 </td>
                                 <td className="border border-gray-300 p-2">
                                     <button
@@ -114,12 +130,7 @@ const ProductList: React.FC<ProductListProps> = ({
                     Delete Selected
                 </button>
             </Form>
-            <ImageModal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-                
-                images={selectedImages}
-            />
+
         </div>
     </div>
 );

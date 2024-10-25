@@ -69,6 +69,7 @@ export const action = async ({ request }: { request: Request }) => {
         addedProductId = newProduct.id;
     }
 
+
     const deleteIds = formData.getAll("deleteId").map(Number);
     if (deleteIds.length > 0) {
         await Promise.all(deleteIds.map(async (id) => {
@@ -119,6 +120,12 @@ export default function AdminPage() {
     const [selectedImages, setSelectedImages] = useState([]);
     const [images, setImages] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [currentTitle, setCurrentTitle] = useState("");
+
+
+
+
+
 
     const clearInput = () => {
         setTitle("");
@@ -132,14 +139,37 @@ export default function AdminPage() {
     };
 
 
-    const handleOpenModal = (images: any) => {
+    const handleOpenModal = (images: any, title: string) => {
         setSelectedImages(images);
+        setCurrentTitle(title); 
         setIsModalOpen(true);
     };
 
     const closeModal = () => {
         setIsModalOpen(false);
         setSelectedImages([]);
+    };
+
+    const handleUploadImages = async (images: File[]) => {
+        const imageUrls: { url: string }[] = [];
+        for (const image of images) {
+            const blobPath = `products/${image.name}`;
+            const response = await put(blobPath, image, { access: 'public' });
+            imageUrls.push({ url: response.url });
+        }
+
+        if (selectedIds.length > 0) {
+            await Promise.all(selectedIds.map(async (id) => {
+                await prisma.product.update({
+                    where: { id },
+                    data: {
+                        images: {
+                            create: imageUrls,
+                        },
+                    },
+                });
+            }));
+        }
     };
 
     useEffect(() => {
@@ -176,6 +206,8 @@ export default function AdminPage() {
         setSelectedIds(checked ? (products as any).map((product: any) => product.id) : []);
     };
 
+
+
     return (
         <div className="flex max-w-6xl mx-auto mt-10 p-5 border rounded shadow">
 
@@ -202,6 +234,8 @@ export default function AdminPage() {
                 closeModal={closeModal}
                 isModalOpen={isModalOpen}
                 selectedImages={selectedImages}
+                onUpload={handleUploadImages}
+                currentTitle={currentTitle}
             />
             <div>
                 <form method="post" action="/signout">
